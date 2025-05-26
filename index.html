@@ -27,6 +27,7 @@
       margin: 10px 0;
       border: none;
       border-radius: 5px;
+      font-size: 16px;
     }
     button {
       width: 100%;
@@ -36,11 +37,18 @@
       color: white;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 16px;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
     }
     #errorMsg {
       color: orange;
       font-size: 14px;
       margin-top: 10px;
+      min-height: 18px;
+      text-align: center;
     }
     .link {
       text-align: center;
@@ -51,15 +59,27 @@
       color: #00ffff;
       text-decoration: none;
     }
+    #forgotPassword {
+      display: block;
+      margin: 10px 0;
+      font-size: 14px;
+      text-align: right;
+    }
+    #forgotPassword a {
+      color: #00ffff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
 
-  <form id="loginForm">
+  <form id="loginForm" autocomplete="off">
     <h2>Login to Your Account</h2>
     <input type="email" id="email" placeholder="Email" required />
     <input type="password" id="password" placeholder="Password" required />
-    <button type="submit">Login</button>
+    <button type="submit" id="loginBtn">Login</button>
+    <div id="forgotPassword"><a id="forgotPasswordLink">Forgot Password?</a></div>
     <div id="errorMsg"></div>
     <div class="link">Don't have an account? <a href="register.html">Register now</a></div>
   </form>
@@ -67,14 +87,14 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBExQ1NNsKbJfoLrj8X6CSOf0HAX6psh2Y",
       authDomain: "smm-panel-ec113.firebaseapp.com",
       projectId: "smm-panel-ec113",
-      storageBucket: "smm-panel-ec113.firebasestorage.app",
+      storageBucket: "smm-panel-ec113.appspot.com",
       messagingSenderId: "358406430490",
       appId: "1:358406430490:web:8fe97be0542fce435896a3"
     };
@@ -85,9 +105,29 @@
 
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
+    const loginBtn = document.getElementById("loginBtn");
+    const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+
+    function getFriendlyErrorMessage(code) {
+      switch (code) {
+        case "auth/user-not-found":
+          return "No user found with this email.";
+        case "auth/wrong-password":
+          return "Incorrect password.";
+        case "auth/invalid-email":
+          return "Please enter a valid email address.";
+        case "auth/too-many-requests":
+          return "Too many attempts. Please try again later.";
+        default:
+          return "An error occurred. Please try again.";
+      }
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      errorMsg.textContent = "";
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Logging in...";
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
@@ -102,14 +142,43 @@
 
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          localStorage.setItem("username", userData.username); // Save username locally
+          localStorage.setItem("username", userData.username || "User");
           window.location.href = "Loading.html";
         } else {
-          errorMsg.textContent = "User data not found.";
+          errorMsg.textContent = "User data not found. Please contact support.";
+          loginBtn.disabled = false;
+          loginBtn.textContent = "Login";
         }
       } catch (error) {
-        errorMsg.textContent = error.message;
+        errorMsg.textContent = getFriendlyErrorMessage(error.code);
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
       }
+    });
+
+    forgotPasswordLink.addEventListener("click", async () => {
+      errorMsg.textContent = "";
+      const email = document.getElementById("email").value.trim();
+      if (!email) {
+        errorMsg.textContent = "Please enter your email to reset password.";
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        errorMsg.style.color = "lightgreen";
+        errorMsg.textContent = "Password reset email sent! Check your inbox.";
+      } catch (error) {
+        errorMsg.style.color = "orange";
+        errorMsg.textContent = getFriendlyErrorMessage(error.code);
+      }
+    });
+
+    // Clear error on input change for better UX
+    form.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", () => {
+        errorMsg.textContent = "";
+        errorMsg.style.color = "orange";
+      });
     });
   </script>
 </body>

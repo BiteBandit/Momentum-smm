@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Register - SMM Panel</title>
   <style>
     body {
@@ -60,10 +60,10 @@
   <form id="registerForm">
     <h2>Sign Up To Get Started</h2>
     <h4>Choose a username and quickly set up your account with your email</h4>
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="text" id="username" placeholder="Username" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
     <button type="submit">Register</button>
     <div id="warning"></div>
     <div class="link">Already have an account? <a href="login.html">Login now</a></div>
@@ -73,7 +73,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBExQ1NNsKbJfoLrj8X6CSOf0HAX6psh2Y",
@@ -84,6 +84,7 @@
       appId: "1:358406430490:web:8fe97be0542fce435896a3"
     };
 
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -100,34 +101,38 @@
       const confirmPassword = document.getElementById("confirmPassword").value;
 
       if (password !== confirmPassword) {
-        warning.textContent = "Passwords do not match. Please try again.";
         warning.style.color = "orange";
+        warning.textContent = "Passwords do not match. Please try again.";
         return;
       }
 
       try {
+        // Create user with email and password
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Store username in Firestore under user's UID
+        // Save user info in Firestore under UID
         await setDoc(doc(db, "users", user.uid), {
           username: username,
           email: email,
-          createdAt: new Date()
+          createdAt: serverTimestamp()
         });
 
         warning.style.color = "lightgreen";
         warning.textContent = "Registration successful! Redirecting...";
+
+        // Redirect after 1.5 seconds
         setTimeout(() => {
-          window.location.href = "dashboard.html"; // Replace with your actual dashboard
+          window.location.href = "Loading.html";  // Update to your page
         }, 1500);
+
       } catch (error) {
+        warning.style.color = "orange";
         if (error.code === "auth/email-already-in-use") {
           warning.textContent = "This email is already registered. Please login or use a different email.";
         } else {
           warning.textContent = "Error: " + error.message;
         }
-        warning.style.color = "orange";
       }
     });
   </script>
